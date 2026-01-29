@@ -80,7 +80,7 @@ aws-data-pipeline/
 - ⏳ Complete documentation
 
 ## Author
-[Your Name]
+[David Mollo]
 
 ## License
 MIT License
