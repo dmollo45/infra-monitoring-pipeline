@@ -1,0 +1,65 @@
+Infrastructure Monitoring and Log Analytics Data Pipeline
+
+Executive Summary
+
+A production-ready, serverless data pipeline built on AWS that automates infrastructure monitoring, log analytics, and real-time alerting. This project demonstrates end-to-end data engineering and site reliability engineering (SRE) practices while maintaining cost efficiency through AWS Free Tier services.
+
+Project Overview
+
+This data pipeline collects, processes, stores, and visualizes infrastructure metrics and application logs in real-time. Built entirely with AWS serverless technologies, the system provides actionable insights into system health, performance bottlenecks, and operational anomalies.
+
+Key Features
+• Automated Data Collection: Lambda functions collect infrastructure metrics and application logs on scheduled intervals
+• Real-time Processing: Event-driven architecture processes data streams with minimal latency
+• Scalable Storage: S3 for log archives with intelligent lifecycle policies; DynamoDB for fast metric queries
+• Intelligent Alerting: CloudWatch alarms trigger notifications for critical threshold breaches
+• Cost-Optimized: Designed to run within AWS Free Tier limits (~$0-5/month)
+
+Architecture Highlights
+
+AWS Services Used:
+• AWS Lambda - Serverless compute for data collection and processing
+• Amazon S3 - Durable storage for raw logs with automated lifecycle management
+• Amazon DynamoDB - NoSQL database for time-series metrics and fast queries
+• Amazon CloudWatch - Monitoring, logging, and alerting infrastructure
+• Amazon EventBridge - Event-driven orchestration and scheduling
+• AWS IAM - Fine-grained security and access control
+
+Monitoring Capabilities
+
+The pipeline tracks critical infrastructure health indicators and triggers alerts for:
+• CPU Utilization - Alerts when usage exceeds 80% threshold
+• Memory Consumption - Notifications for memory usage above 85%
+• Error Rate Monitoring - Detects when application error rates breach acceptable limits
+• Pipeline Health - Automatic detection and alerting for data pipeline component failures
+• Custom Metrics - Extensible framework for adding domain-specific monitoring
+
+Technical Skills Demonstrated
+• Data Engineering: ETL pipeline design, data modeling, storage optimization
+• Site Reliability Engineering: Monitoring, alerting, incident detection, operational excellence
+• Cloud Architecture: Serverless design patterns, event-driven systems, cost optimization
+• Infrastructure as Code: Reproducible deployments, version-controlled infrastructure
+• DevOps Practices: CI/CD readiness, automated testing, documentation
+
+Project Goals
+Build a scalable, production-grade monitoring solution
+Demonstrate proficiency with AWS serverless technologies
+Implement SRE best practices for observability and reliability
+Create comprehensive documentation for knowledge sharing
+Maintain cost efficiency while ensuring high availability
+
+Getting Started
+
+This repository contains all code, configuration files, and documentation needed to deploy and operate the infrastructure monitoring pipeline. Follow the setup guides in the docs/ folder to get started.
+
+Repository Structure
+
+Prerequisites
+• AWS Account (Free Tier eligible)
+• AWS CLI configured with appropriate credentials
+• Basic understanding of AWS Lambda, S3, and DynamoDB
+• Python 3.9+ for Lambda function development
+
+Project Status: Active Development | Last Updated: January 28, 2026
+
+For detailed setup instructions, see Day 1 Setup Guide
