@@ -1,86 +1,55 @@
+## Project Progress
 
-# AWS Serverless Data Pipeline
+### ✅ Completed Phases
 
-Infrastructure monitoring and log analytics pipeline built with AWS Lambda, S3, and DynamoDB.
+**Phase 1 (Day 1) - IAM Setup**
+- Created IAM role `DataPipelineLambdaRole`
+- Configured permissions for Lambda, S3, DynamoDB, CloudWatch
+- Documentation: `docs/day1-setup.md`
 
-## Project Overview
-This project implements a serverless data pipeline for collecting, processing, and analyzing infrastructure logs and metrics using AWS services.
+**Phase 2 (Day 2) - Storage Setup**
+- Created S3 bucket `infra-monitoring-pipeline-data` (eu-west-1)
+- Created DynamoDB table `InfraMetrics` with GSI
+- Configured 7-day S3 lifecycle policy
+- Documentation: `docs/phase2-storage.md`
 
-## Project Timeline
-- **Start Date**: January 27, 2026
-- **End Date**: February 14, 2026
-- **Duration**: 15 days
+**Phase 3 (Day 3) - Lambda Development**
+- Developed `data-collector` Lambda function
+- Implemented metric generation logic
+- Created 5 unit tests (all passing)
+- Documentation: `docs/phase3-lambda-development.md`
 
-## Current Status
-**Day 1 - IAM Setup** ✅ (January 27, 2026)
+**Phase 4 (Day 4) - Lambda Deployment & Automation** ✅ NEW
+- Deployed Lambda function to AWS
+- Configured EventBridge schedule (5-minute intervals)
+- Implemented enable/disable cost control
+- Resolved handler, S3 access, and DynamoDB schema issues
+- Tested automated data collection successfully
+- Documentation: `docs/phase4-deployment.md`
 
-## Technologies
-- **AWS Lambda** - Serverless compute for data processing
-- **Amazon S3** - Object storage for raw and processed data
-- **DynamoDB** - NoSQL database for metrics storage
-- **CloudWatch** - Monitoring and logging
-- **EventBridge** - Event scheduling
-- **Python** - Lambda function runtime
+### 🔜 Upcoming Phases
 
-## Architecture
-```
-EventBridge → Lambda (data-collector) → S3 (raw data)
-                                          ↓
-                                    Lambda (log-processor)
-                                          ↓
-                                      DynamoDB
-                                          ↓
-                                   CloudWatch Dashboard
-```
+**Phase 5 (Day 5) - Log Processor Development**
+- Develop data transformation Lambda
+- Implement aggregation logic
+- Create unit tests
 
-## Project Structure
-```
-aws-data-pipeline/
-├── iam-policies/          # IAM policy definitions
-├── docs/                  # Project documentation
-├── lambda/
-│   ├── data-collector/    # Data collection Lambda
-│   └── log-processor/     # Log processing Lambda
-└── README.md
-```
+**Phase 6 (Day 6) - Log Processor Deployment**
+- Deploy log-processor Lambda
+- Configure S3 event trigger
+- Test automated processing
 
-## Documentation
-- [Day 1 Setup - IAM Configuration](docs/day1-setup.md)
-- [IAM Policies Documentation](iam-policies/README.md)
+**Phase 7 (Day 7) - Step Functions Workflow**
+- Create state machine
+- Orchestrate data pipeline
+- Add error handling
 
-## Daily Progress
-- ✅ **Day 1** (Jan 27): AWS account setup & IAM configuration
-- ⏳ **Day 2** (Jan 28): S3 bucket & DynamoDB table creation
-- ⏳ **Day 3** (Jan 29): Lambda function development (data-collector)
-- ⏳ **Day 4** (Jan 30): Deploy data-collector & EventBridge setup
-- ⏳ **Day 5** (Jan 31): Lambda function development (log-processor)
-- ⏳ **Day 6** (Feb 3): Deploy log-processor & S3 event notifications
-- ⏳ **Day 7** (Feb 4): CloudWatch dashboard creation
-- ⏳ **Day 8** (Feb 5): CloudWatch alarms setup
-- ⏳ **Day 9** (Feb 6): Integration testing
-- ⏳ **Day 10** (Feb 7): Cost optimization
-- ⏳ **Day 11** (Feb 10): Architecture documentation
-- ⏳ **Day 12** (Feb 11): Code documentation
-- ⏳ **Day 13** (Feb 12): Troubleshooting guide
-- ⏳ **Day 14** (Feb 13): Portfolio preparation
-- ⏳ **Day 15** (Feb 14): Final review & retrospective
+### 📊 Project Statistics
 
-## Medium Articles
-- Week 1 (Feb 2): Days 1-5 overview
-- Week 2 (Feb 9): Days 6-10 overview
-- Week 3 (Feb 16): Days 11-15 overview
-
-## Success Criteria
-- ✅ IAM role and policies configured
-- ⏳ S3 bucket with lifecycle policies
-- ⏳ DynamoDB table with proper schema
-- ⏳ Two Lambda functions deployed
-- ⏳ CloudWatch dashboard operational
-- ⏳ Monthly cost under $0.50
-- ⏳ Complete documentation
-
-## Author
-[David Mollo]
-
-## License
-MIT License
+- **Total Cost to Date:** $0.00 (within AWS Free Tier)
+- **Lambda Functions:** 1 deployed (data-collector)
+- **S3 Buckets:** 1 (infra-monitoring-pipeline-data)
+- **DynamoDB Tables:** 1 (InfraMetrics)
+- **EventBridge Rules:** 1 (data-collector-schedule)
+- **Lines of Code:** ~150 (Python)
+- **Test Coverage:** 100% (5/5 tests passing)
