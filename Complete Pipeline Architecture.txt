@@ -1,0 +1,785 @@
+INFRASTRUCTURE MONITORING & LOG ANALYTICS PIPELINE
+COMPLETE PHASE-BY-PHASE OVERVIEW
+
+Project: AWS Data Pipeline for Infrastructure Monitoring
+Author: David Mollo
+Last Updated: February 4, 2026
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+Project Overview
+Phase 1: IAM Setup & Foundation
+Phase 2: Storage Layer Setup
+Phase 3: Data Generation Development
+Phase 4: Data Generation Automation
+Phase 5: Data Processing Development
+Phase 6: Data Processing Automation
+Phase 7: Real-Time Monitoring
+Phase 8: Historical Analytics
+Phase 9: Orchestration & Error Handling
+Phase 10: Documentation & Polish
+Complete End-to-End Data Flow
+Data Movement Summary
+Current Progress
+Key Architectural Patterns
+
+================================================================================
+PROJECT OVERVIEW
+================================================================================
+
+This Infrastructure Monitoring & Log Analytics Pipeline is a serverless, 
+event-driven data pipeline built on AWS that demonstrates production-grade 
+data engineering skills for L4 Data Engineer positions.
+
+Key Features:
+• Serverless architecture using AWS Lambda
+• Event-driven processing with S3 and EventBridge
+• Lambda Architecture pattern (hot + cold data paths)
+• Comprehensive error handling and retry logic
+• Real-time monitoring and historical analytics
+• Cost-optimized (under $2/month)
+
+Technology Stack:
+• AWS Lambda (Python 3.12)
+• Amazon S3 (data lake)
+• Amazon DynamoDB (NoSQL database)
+• AWS Glue & Athena (SQL analytics)
+• Amazon CloudWatch (monitoring)
+• AWS Step Functions (orchestration)
+• Amazon EventBridge (scheduling)
+
+================================================================================
+PHASE 1: IAM SETUP & FOUNDATION
+================================================================================
+
+Status: COMPLETED (January 27, 2026)
+
+Purpose:
+Establish security foundation and access controls for the entire pipeline.
+
+What it does:
+• Creates IAM roles for Lambda functions
+• Defines IAM policies with least-privilege permissions
+• Sets up AWS CLI for local development
+• Initializes Git repository for version control
+
+Data Flow:
+N/A (Infrastructure setup phase)
+
+Key Deliverables:
+• IAM role: DataPipelineLambdaRole
+• IAM policies documented in JSON format
+• AWS credentials configured locally
+• GitHub repository initialized at github.com/davidmollo/aws-data-pipeline
+
+Technical Details:
+• IAM Policy: Grants S3 PutObject, DynamoDB PutItem, CloudWatch Logs access
+• AWS CLI: Configured with access keys for programmatic access
+• Git: Version control for all code and documentation
+
+Destination:
+Foundation for all AWS service interactions throughout the pipeline.
+
+================================================================================
+PHASE 2: STORAGE LAYER SETUP
+================================================================================
+
+Status: COMPLETED (February 1, 2026)
+
+Purpose:
+Create data storage infrastructure for both hot data (real-time queries) and 
+cold data (historical analysis).
+
+What it does:
+• Creates S3 bucket for raw data storage (cold/batch layer)
+• Sets up DynamoDB table for processed data (hot/speed layer)
+• Configures lifecycle policies (30-day auto-deletion)
+• Enables DynamoDB TTL for automatic cleanup
+• Creates Global Secondary Index for flexible querying
+
+Data Flow:
+Infrastructure Setup → S3 Bucket (infra-monitoring-pipeline-data)
+Infrastructure Setup → DynamoDB Table (InfraMetrics)
+
+Key Deliverables:
+• S3 bucket: infra-monitoring-pipeline-data
+• Lifecycle policy: 30-day automatic deletion
+• Partitioning structure: metrics/year=YYYY/month=MM/day=DD/
+• Storage class: Standard
+• DynamoDB table: InfraMetrics
+• Partition key: metric_id (String)
+• Sort key: timestamp (Number)
+• Billing mode: On-demand (auto-scaling)
+• TTL: Enabled (30-day expiration)
+• Global Secondary Index: metric_type-timestamp-index
+• Partition key: metric_type (String)
+• Sort key: timestamp (Number)
+• Purpose: Query all metrics of a specific type within time ranges
+
+Technical Details:
+• S3 bucket size limit: 5 GB (cost control)
+• DynamoDB free tier: 25 GB storage, 25 WCU/RCU
+• Hive-style partitioning for Athena optimization
+• TTL attribute: Automatic cleanup after 30 days
+
+Destination:
+Ready-to-use storage infrastructure for pipeline data.
+
+Cost:
+• S3: Approximately $0.50/month for 20GB
+• DynamoDB: $0.00/month (within free tier)
+
+================================================================================
+PHASE 3: DATA GENERATION DEVELOPMENT
+================================================================================
+
+Status: COMPLETED (January 29, 2026)
+
+Purpose:
+Develop the Lambda function that generates synthetic infrastructure metrics 
+for demonstration purposes.
+
+What it does:
+• Writes data-collector Lambda function (150+ lines of Python)
+• Implements synthetic metric generation logic
+• Simulates 10 servers with 5 metric types each
+• Adds error handling and logging
+• Creates 5 comprehensive unit tests
+• Tests locally without AWS deployment
+
+Data Flow:
+Development Environment → Lambda Function Code (data-collector)
+
+Key Deliverables:
+• data-collector/lambda_function.py (150 lines)
+• Metric types generated:
+cpu_utilization (20-95 percent)
+memory_usage (30-90 percent)
+disk_usage (40-85 percent)
+network_in (10-500 mbps)
+network_out (10-500 mbps)
+• Simulated servers: server-001 through server-010
+• Unit tests: 5/5 passing
+• Local testing: Successful
+
+Technical Details:
+• Runtime: Python 3.12
+• Memory allocation: 128 MB
+• Timeout: 60 seconds
+• Dependencies: boto3 (AWS SDK)
+• Data format: JSON with timestamp, metric_type, value, hostname, region
+
+Metric Structure:
+{
+  "metric_id": "uuid-string",
+  "timestamp": 1738675200,
+  "metrictype": "cpuutilization",
+  "value": 75.3,
+  "unit": "percent",
+  "hostname": "server-001",
+  "region": "us-east-1",
+  "environment": "production"
+}
+
+Destination:
+Production-ready Lambda function code ready for deployment.
+
+================================================================================
+PHASE 4: DATA GENERATION AUTOMATION
+================================================================================
+
+Status: COMPLETED (January 30, 2026)
+
+Purpose:
+Deploy and automate the data generation process using EventBridge scheduling.
+
+What it does:
+• Packages and deploys data-collector Lambda to AWS
+• Configures environment variables (S3BUCKET, DYNAMODBTABLE, REGION)
+• Creates EventBridge rule for time-based scheduling
+• Sets up 5-minute automated execution
+• Verifies automated data generation via CloudWatch Logs
+• Confirms S3 files are being created with proper partitioning
+
+Data Flow:
+EventBridge (every 5 minutes) → data-collector Lambda Function → S3 (writes JSON files)
+
+Trigger Type:
+TIME-BASED (EventBridge schedule)
+
+Schedule:
+rate(5 minutes) - Executes 288 times per day
+
+Source:
+EventBridge scheduler (data-collector-schedule rule)
+
+Destination:
+S3 bucket with partitioned structure:
+s3://infra-monitoring-pipeline-data/metrics/year=2026/month=02/day=04/metrics-1738675200.json
+
+Key Deliverables:
+• Lambda function deployed and active in AWS
+• EventBridge rule: data-collector-schedule (ENABLED status)
+• Automated execution: 288 times/day (every 5 minutes)
+• S3 files created automatically with Hive-style partitioning
+• CloudWatch Logs: /aws/lambda/data-collector showing successful executions
+• Environment variables configured:
+• S3_BUCKET=infra-monitoring-pipeline-data
+• DYNAMODB_TABLE=InfraMetrics
+• REGION=us-east-1
+
+Technical Details:
+• Lambda ARN: arn:aws:lambda:us-east-1:ACCOUNT_ID:function:data-collector
+• IAM Role: DataPipelineLambdaRole
+• Execution time: Approximately 2-5 seconds per run
+• File size: 2-5 KB per JSON file
+
+Data Generated:
+• Metrics per run: 50 (10 servers × 5 metric types)
+• Runs per day: 288 (every 5 minutes)
+• Total metrics per day: 14,400
+• Total metrics per month: 432,000
+
+Monitoring:
+• CloudWatch Logs: Real-time execution logs
+• Lambda metrics: Invocations, Duration, Errors
+• S3 metrics: Object count, Storage size
+
+================================================================================
+PHASE 5: DATA PROCESSING DEVELOPMENT
+================================================================================
+
+Status: IN PROGRESS (February 4, 2026)
+
+Purpose:
+Develop the log-processor Lambda Function that processes S3 files and loads 
+data into DynamoDB for real-time querying.
+
+What it does:
+• Writes log-processor Lambda Function (250+ lines of Python)
+• Implements S3 event parsing and JSON validation
+• Adds batch write operations for DynamoDB (25 items per batch)
+• Implements error handling with exponential backoff retry logic
+• Creates 12 comprehensive unit tests
+• Tests locally with sample S3 events
+• Adds Dead Letter Queue support for failed events
+
+Data Flow (after Phase 6 deployment):
+S3 (new file uploaded) → S3 Event Notification → log-processor Lambda Function → DynamoDB + CloudWatch
+
+Trigger Type (configured in Phase 6):
+EVENT-BASED (S3 ObjectCreated events)
+
+Source:
+S3 bucket (JSON files created by Phase 4 data-collector)
+
+Destination:
+DynamoDB table (InfraMetrics) - Structured data for real-time queries
+CloudWatch Metrics - Pipeline monitoring metrics
+SQS Dead Letter Queue - Failed events for retry (optional)
+
+Key Deliverables:
+• log-processor/lambda_function.py (250+ lines)
+• Features implemented:
+• S3 event notification parsing
+• JSON download and validation
+• Data structure validation (required fields check)
+• Batch write operations (up to 25 items per DynamoDB request)
+• Retry logic: 3 attempts with exponential backoff (0.5s, 1s, 2s)
+• Error handling for throttling, parsing errors, access denied
+• CloudWatch custom metrics publishing
+• Dead Letter Queue integration
+• Unit tests: 12 comprehensive tests
+testvalidatemetrics_valid
+testvalidatemetricsmissingfields
+testvalidatemetricsinvalidtypes
+testpreparedynamodb_item
+testdownloadandparsejson_success
+testdownloadandparsejsoninvalidjson
+testwritetodynamodbbatch_success
+testwritetodynamodbbatch_throttling
+testpublishprocessing_metrics
+testlambdahandler_success
+testlambdahandlernorecords
+testcreateresponse
+
+Technical Details:
+• Runtime: Python 3.12
+• Memory allocation: 256 MB
+• Timeout: 120 seconds
+• Dependencies: boto3 (AWS SDK)
+• Batch size: 25 items (DynamoDB limit)
+• Max retries: 3 attempts
+• TTL: 30 days (2,592,000 seconds)
+
+Error Handling:
+S3 Read Failures:
+• NoSuchKey: Log and skip (file doesn't exist)
+• AccessDenied: Log and raise (permission issue)
+• Retry: Automatic via S3 event notification (up to 24 hours)
+JSON Parsing Errors:
+• JSONDecodeError: Log corrupted file, skip processing
+• Alert: Send SNS notification for data quality issues
+• Recovery: Investigate data-collector for bugs
+DynamoDB Write Failures:
+• ProvisionedThroughputExceededException: Exponential backoff retry
+• Mitigation: On-demand billing mode (auto-scaling)
+• Fallback: Write to Dead Letter Queue for later processing
+Batch Write Partial Failures:
+• Retry only failed items
+• Track success/failure counts
+• Alert if failure rate exceeds 5 percent
+
+Data Validation:
+Required fields checked:
+• metric_id (String)
+• timestamp (Number)
+• metric_type (String)
+• value (Number)
+• hostname (String)
+
+Data Transformation:
+• Convert float to Decimal for DynamoDB compatibility
+• Add TTL attribute (current time + 30 days)
+• Add region and environment defaults if missing
+
+CloudWatch Metrics Published:
+• MetricsProcessed (Count)
+• SuccessfulWrites (Count)
+• FailedWrites (Count)
+• FilesProcessed (Count)
+
+Data Processed:
+• Metrics per file: 50
+• Files per day: 288
+• Total metrics per day: 14,400
+
+Processing Latency:
+Expected: 1-3 seconds from S3 upload to DynamoDB write
+
+================================================================================
+PHASE 6: DATA PROCESSING AUTOMATION
+================================================================================
+
+Status: PLANNED (February 5, 2026)
+
+Purpose:
+Deploy and integrate the log-processor Lambda Function with S3 event 
+notifications for automatic processing.
+
+What it does:
+• Packages and deploys log-processor Lambda Function to AWS
+• Configures S3 event notifications (ObjectCreated trigger)
+• Sets up SQS Dead Letter Queue for failed events
+• Tests end-to-end pipeline (Phase 4 → Phase 5 → Phase 6)
+• Verifies DynamoDB writes and CloudWatch metrics
+• Validates processing latency and error handling
+
+Data Flow:
+S3 ObjectCreated Event → log-processor Lambda Function → DynamoDB (batch write) + CloudWatch (metrics)
+
+Trigger Type:
+EVENT-BASED (S3 automatically triggers Lambda on new file upload)
+
+Source:
+S3 bucket (triggered by Phase 4 data-collector uploads)
+
+Destination:
+DynamoDB table (InfraMetrics) - Hot data for real-time queries
+CloudWatch Metrics - Pipeline health monitoring
+SQS Dead Letter Queue - Failed events for manual retry
+
+Key Deliverables:
+• Lambda function deployed with S3 trigger configured
+• S3 event notification:
+• Event type: s3:ObjectCreated:*
+• Prefix filter: metrics/
+• Suffix filter: .json
+• Target: log-processor Lambda Function
+• SQS Dead Letter Queue:
+• Queue name: log-processor-dlq
+• Message retention: 14 days
+• Purpose: Store failed events for investigation
+• End-to-end pipeline operational:
+• EventBridge triggers data-collector every 5 minutes
+• data-collector writes to S3
+• S3 event triggers log-processor
+• log-processor writes to DynamoDB
+• DynamoDB populated automatically with metrics
+• CloudWatch Logs showing processing success
+
+Technical Details:
+• Lambda ARN: arn:aws:lambda:us-east-1:ACCOUNT_ID:function:log-processor
+• IAM Role: DataPipelineLambdaRole (updated with S3 GetObject permission)
+• S3 event notification: Asynchronous invocation
+• Concurrency: Up to 1000 parallel executions (AWS default)
+
+IAM Permissions Required:
+• s3:GetObject (read JSON files)
+• dynamodb:BatchWriteItem (write metrics)
+• dynamodb:PutItem (individual writes)
+• cloudwatch:PutMetricData (publish metrics)
+• sqs:SendMessage (Dead Letter Queue)
+• logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents
+
+Processing Latency:
+• S3 upload to Lambda trigger: 1-3 seconds
+• Lambda execution: 2-5 seconds
+• Total latency: 3-8 seconds from generation to DynamoDB
+
+Monitoring:
+• CloudWatch Logs: /aws/lambda/log-processor
+• Lambda metrics: Invocations, Duration, Errors, Throttles
+• DynamoDB metrics: ConsumedWriteCapacityUnits, UserErrors
+• Custom metrics: MetricsProcessed, SuccessfulWrites, FailedWrites
+
+Testing Scenarios:
+Normal operation: Verify metrics written to DynamoDB
+Throttling: Simulate high write volume, verify retry logic
+Bad data: Upload invalid JSON, verify error handling
+Missing file: Trigger with non-existent key, verify logging
+
+================================================================================
+PHASE 7: REAL-TIME MONITORING
+================================================================================
+
+Status: PLANNED (February 6-7, 2026)
+
+Purpose:
+Enable real-time visualization and alerting for infrastructure metrics and 
+pipeline health.
+
+What it does:
+• Creates CloudWatch Dashboard with 4-6 visualization widgets
+• Configures CloudWatch Alarms for critical thresholds
+• Sets up SNS topic for alert notifications (email/SMS)
+• Implements custom metrics for pipeline health monitoring
+• Tests alarm triggers and notification delivery
+
+Data Flow:
+DynamoDB (hot data) ← CloudWatch Dashboard (queries via GSI)
+CloudWatch Metrics → CloudWatch Alarms → SNS (email/SMS alerts)
+
+Trigger Type:
+READ OPERATIONS (Dashboard auto-refresh every 1 minute)
+
+Source:
+DynamoDB table (InfraMetrics) - Last 30 days of metrics
+
+Destination:
+CloudWatch Dashboard - Visual charts and graphs
+SNS topic - Alert notifications to email/SMS
+
+Key Deliverables:
+• CloudWatch Dashboard: InfraMonitoring-Dashboard
+• Widget 1: CPU Utilization (Line chart, last hour)
+• Widget 2: Memory Usage (Stacked area chart, last hour)
+• Widget 3: Disk Usage (Line chart, last 24 hours)
+• Widget 4: Network Traffic (Combo chart, in/out, last hour)
+• Widget 5: Lambda Invocations (Number widget, last 5 minutes)
+• Widget 6: Error Rate (Number widget, percentage)
+• CloudWatch Alarms (Critical - Page on-call):
+Lambda Error Rate > 5 percent
+• Metric: Errors / Invocations
+• Threshold: 5 percent over 5 minutes
+• Action: SNS → PagerDuty
+DynamoDB Throttling
+• Metric: UserErrors (throttling events)
+• Threshold: > 10 in 5 minutes
+• Action: SNS → Email + Auto-scale
+S3 Upload Failures
+• Metric: Custom metric S3UploadFailures
+• Threshold: > 3 in 10 minutes
+• Action: SNS → Slack
+High CPU Alert
+• Metric: Custom metric AvgCPUUtilization
+• Threshold: > 80 percent for 10 minutes
+• Action: SNS → Email
+• CloudWatch Alarms (Warning - Email only):
+Lambda Duration > 80 percent of timeout
+DynamoDB consumed capacity > 80 percent
+S3 storage > 4.5 GB (approaching 5GB limit)
+• SNS Topic: pipeline-alerts
+• Subscribers: Email addresses for team notifications
+• Protocol: Email, SMS (optional)
+
+Technical Details:
+• Dashboard refresh: Auto (1-minute intervals)
+• Query pattern: GSI queries for recent metrics
+• metrictype = 'cpuutilization'
+• timestamp > (now - 3600) for last hour
+• Alarm evaluation period: 5 minutes
+• Alarm datapoints to alarm: 1 out of 1
+• Alarm actions: SNS publish
+
+Query Performance:
+• DynamoDB query latency: Single-digit milliseconds
+• Dashboard load time: )
+• Partitioned by:
+• year (INT)
+• month (INT)
+• day (INT)
+• SerDe: org.openx.data.jsonserde.JsonSerDe
+• Location: s3://infra-monitoring-pipeline-data/metrics/
+• Sample Athena Queries:
+Average CPU utilization by hostname (last 24 hours)
+Memory usage trends over time
+High disk usage alerts (> 80 percent)
+Network traffic analysis by hostname
+Metric count by type and environment
+Peak usage times analysis
+• Partition pruning validation:
+• Query with partitions: Scans 10 MB
+• Query without partitions: Scans 1 GB
+• Cost reduction: 90 percent
+
+Technical Details:
+• Athena pricing: $5 per TB of data scanned
+• With partitioning: Approximately 1 MB scanned per query = $0.000005
+• 1000 queries per month = $0.005 (half a cent)
+• Free tier: First 10 GB scanned per month
+
+Sample Query 1 - Average CPU by Hostname:
+SELECT
+    hostname,
+    AVG(value) as avg_cpu,
+    MAX(value) as max_cpu,
+    MIN(value) as min_cpu
+FROM inframonitoringdb.metrics
+WHERE metrictype = 'cpuutilization'
+    AND year = 2026 AND month = 2 AND day = 5
+GROUP BY hostname
+ORDER BY avg_cpu DESC;
+
+Sample Query 2 - Memory Usage Trends:
+SELECT
+    FROM_UNIXTIME(timestamp) as time,
+    hostname,
+    value as memory_percent
+FROM inframonitoringdb.metrics
+WHERE metrictype = 'memoryusage'
+    AND year = 2026 AND month = 2
+ORDER BY timestamp DESC
+LIMIT 100;
+
+Sample Query 3 - High Disk Usage Alerts:
+SELECT
+    hostname,
+    value as diskusagepercent,
+    FROMUNIXTIME(timestamp) as alerttime
+FROM inframonitoringdb.metrics
+WHERE metrictype = 'diskusage'
+    AND value > 80
+    AND year = 2026 AND month = 2
+ORDER BY value DESC;
+
+Sample Query 4 - Network Traffic Analysis:
+SELECT
+    hostname,
+    SUM(CASE WHEN metrictype = 'networkin' THEN value ELSE 0 END) as totalnetworkin_mbps,
+    SUM(CASE WHEN metrictype = 'networkout' THEN value ELSE 0 END) as totalnetworkout_mbps
+FROM inframonitoringdb.metrics
+WHERE year = 2026 AND month = 2 AND day = 5
+GROUP BY hostname;
+
+Use Cases:
+• Historical trend analysis (weekly, monthly, yearly)
+• Capacity planning and forecasting
+• Compliance reporting and auditing
+• Root cause analysis for incidents
+• Cost optimization analysis
+
+Query Performance:
+• Query latency: 1-10 seconds (depends on data scanned)
+• Partition pruning: Reduces scan by 90 percent or more
+• Concurrent queries: Up to 20 (default limit)
+
+Cost Optimization:
+• Partition by date: Only scan relevant time periods
+• Use columnar format (Parquet): 50-80 percent storage reduction (future enhancement)
+• Compress data: Reduce storage and scan costs
+• Limit result sets: Use LIMIT clause
+
+Query Cost Estimate:
+• Approximately $0.01/month for 1000 queries with partitioning
+• Within free tier: 10 GB scanned per month
+
+================================================================================
+PHASE 9: ORCHESTRATION & ERROR HANDLING
+================================================================================
+
+Status: PLANNED (February 10-11, 2026)
+
+Purpose:
+Add workflow orchestration and comprehensive error handling using AWS Step 
+Functions for production-grade reliability.
+
+What it does:
+• Creates AWS Step Functions state machine for workflow orchestration
+• Implements retry logic with exponential backoff for all states
+• Configures Dead Letter Queues (SQS) for failed events
+• Sets up error notifications via SNS for critical failures
+• Tests failure scenarios (throttling, timeouts, bad data, network issues)
+• Documents recovery procedures for common failures
+
+Data Flow:
+Step Functions → data-collector Lambda Function → S3 → log-processor Lambda Function → DynamoDB
+                                                                                      ↓
+                                                                      CloudWatch + SNS (errors)
+                                                                                      ↓
+                                                                      SQS DLQ (failed events)
+
+Trigger Type:
+ORCHESTRATED (Step Functions manages workflow execution)
+
+Source:
+Step Functions state machine (can be triggered by EventBridge or API)
+
+Destination:
+All pipeline components (orchestrated execution)
+SQS Dead Letter Queue (failed events)
+SNS topic (error alerts)
+CloudWatch Logs (execution history)
+
+Key Deliverables:
+• Step Functions State Machine: InfraMonitoringPipeline
+• States:
+GenerateMetrics (Task - invoke data-collector)
+WaitForS3Upload (Wait - 5 seconds)
+CheckProcessingStatus (Task - verify processing)
+IsProcessingComplete (Choice - check status)
+WaitForProcessing (Wait - 3 seconds)
+ValidateDataQuality (Task - data validation)
+ParallelMonitoring (Parallel - CloudWatch + Alarms)
+PipelineSuccess (Succeed)
+HandleGenerationFailure (Task - SNS notification)
+HandleProcessingFailure (Task - SNS notification)
+HandleValidationFailure (Task - SNS notification)
+HandleMonitoringFailure (Task - SNS notification)
+• Retry Configuration:
+• Lambda.ServiceException: 3 attempts, 2.0x backoff
+• Lambda.TooManyRequestsException: 3 attempts, 2.0x backoff
+• States.TaskFailed: 5 attempts, 1.5x backoff
+• Catch Configuration:
+• All errors caught and routed to appropriate failure handlers
+• SNS notifications sent for all failures
+• Execution continues or fails based on error severity
+• SQS Dead Letter Queues:
+log-processor-dlq
+• Purpose: Store failed S3 processing events
+• Retention: 14 days
+• Redrive policy: After 3 Lambda retries
+step-functions-dlq
+• Purpose: Store failed workflow executions
+• Retention: 14 days
+• SNS Topics:
+pipeline-alerts (critical errors)
+pipeline-warnings (non-critical issues)
+• Error Handling Documentation:
+• Troubleshooting guide for common errors
+• Recovery procedures for each failure type
+• Runbook for on-call engineers
+
+Technical Details:
+• Step Functions pricing: $0.025 per 1,000 state transitions
+• Free tier: 4,000 state transitions per month
+• Estimated transitions per execution: 8-12
+• Monthly executions: 8,640 (every 5 minutes)
+• Monthly cost: $0.00 (within free tier)
+
+Retry Logic Examples:
+Data Generation Failure:
+• Error: Lambda timeout or memory error
+• Retry: 3 attempts with exponential backoff (2s, 4s, 8s)
+• Fallback: Send SNS alert, fail execution
+• Recovery: Next scheduled run will retry
+DynamoDB Throttling:
+• Error: ProvisionedThroughputExceededException
+• Retry: 3 attempts with exponential backoff (0.5s, 1s, 2s)
+• Fallback: Send to DLQ for later processing
+• Recovery: Manual replay from DLQ or auto-retry
+S3 Access Denied:
+• Error: AccessDenied on GetObject
+• Retry: No retry (permission issue)
+• Fallback: Send critical alert
+• Recovery: Fix IAM permissions, replay from DLQ
+JSON Parsing Error:
+• Error: JSONDecodeError
+• Retry: No retry (data quality issue)
+• Fallback: Log error, skip file, send warning
+• Recovery: Investigate data-collector, regenerate data
+
+Failure Scenarios Tested:
+Lambda timeout (increase timeout or optimize code)
+DynamoDB throttling (verify on-demand mode)
+S3 bucket full (lifecycle policy check)
+Invalid JSON data (data validation logic)
+Network connectivity issues (retry with backoff)
+IAM permission errors (policy review)
+
+Monitoring:
+• Step Functions execution history (last 90 days)
+• CloudWatch Logs for each state execution
+• Custom metrics: ExecutionsFailed, ExecutionsSucceeded
+• Alarm on execution failure rate > 5 percent
+
+Recovery Procedures:
+Check Step Functions execution history
+Review CloudWatch Logs for error details
+Identify failure state and error type
+Apply appropriate recovery procedure
+Replay failed executions if needed
+Update code or configuration to prevent recurrence
+
+Cost:
+• Step Functions: $0.00/month (within free tier)
+• SQS: $0.00/month (within free tier)
+• SNS: $0.00/month (within free tier)
+
+================================================================================
+PHASE 10: DOCUMENTATION & POLISH
+================================================================================
+
+Status: PLANNED (February 12-14, 2026)
+
+Purpose:
+Finalize documentation and prepare the project for portfolio presentation 
+and L4 Data Engineer interviews.
+
+What it does:
+• Creates comprehensive architecture documentation
+• Writes operational runbooks and troubleshooting guides
+• Prepares GitHub repository for portfolio presentation
+• Creates demo materials and presentation slides
+• Conducts final testing and cost analysis
+• Writes project retrospective
+
+Data Flow:
+N/A (Documentation and finalization phase)
+
+Key Deliverables:
+
+Phase 12 (February 11, 2026) - Code Documentation:
+• Add comprehensive code comments to all Lambda functions
+• Write function docstrings with parameters and return types
+• Create API documentation for all functions
+• Refactor code for readability and maintainability
+• Remove debug and test code from production functions
+
+Phase 13 (February 12, 2026) - Operational Documentation:
+• Troubleshooting guide for common issues
+• Operational runbook for maintenance tasks
+• Incident response procedures
+• Monitoring procedures and alert response
+• Maintenance checklist for regular tasks
+
+Phase 14 (February 13, 2026) - Portfolio Preparation:
+• Professional README.md for GitHub repository
+• Architecture diagrams (data flow, component interaction)
+• Screenshots of CloudWatch Dashboard
+• Screenshots of Athena queries and results
+• Demo video or walkthrough (optional)
+• Presentation slides for interviews
+
+Phase 15 (Februarydavoduo
