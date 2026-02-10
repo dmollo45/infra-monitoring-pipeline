@@ -53,3 +53,8 @@
 - **EventBridge Rules:** 1 (data-collector-schedule)
 - **Lines of Code:** ~150 (Python)
 - **Test Coverage:** 100% (5/5 tests passing)
+
+## CloudWatch Dashboard
+
+![Dashboard](screenshots/phase7-cloudwatch/cloudwatch-dashboard-full.png)
+*Real-time monitoring dashboard processing 14,400 metrics/day*
