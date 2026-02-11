@@ -11,25 +11,16 @@ dynamodb = boto3.resource('dynamodb')
 cloudwatch = boto3.client('cloudwatch')
 
 BUCKET_NAME = 'infra-monitoring-pipeline-data'
-TABLE_NAME = 'InfraMetrics'  # ✅ Fixed: Correct table name
+TABLE_NAME = 'InfraMetrics'
 REGION = 'eu-west-1'
 
 def lambda_handler(event, context):
-    """
-    Collects infrastructure metrics and writes them to S3 and DynamoDB.
-    Now combines all 4 metrics into a single JSON file per collection run.
-    """
-    
     timestamp = int(datetime.now().timestamp())
     collected_at = datetime.now().isoformat()
-    
-    # Generate random instance ID for this collection run
     instance_id = f"i-{random.randint(100000, 999999)}"
     
-    # Generate all 4 metrics for this instance
     metrics = []
     
-    # 1. CPU Utilization
     metrics.append({
         "metric_id": f"cpu-{timestamp}",
         "metric_type": "cpu_utilization",
@@ -40,7 +31,6 @@ def lambda_handler(event, context):
         "collected_at": collected_at
     })
     
-    # 2. Memory Usage
     metrics.append({
         "metric_id": f"mem-{timestamp}",
         "metric_type": "memory_usage",
@@ -51,7 +41,6 @@ def lambda_handler(event, context):
         "collected_at": collected_at
     })
     
-    # 3. Disk Usage
     metrics.append({
         "metric_id": f"disk-{timestamp}",
         "metric_type": "disk_usage",
@@ -62,7 +51,6 @@ def lambda_handler(event, context):
         "collected_at": collected_at
     })
     
-    # 4. Network Traffic
     metrics.append({
         "metric_id": f"net-{timestamp}",
         "metric_type": "network_traffic",
@@ -73,15 +61,21 @@ def lambda_handler(event, context):
         "collected_at": collected_at
     })
     
-    # Write all metrics to S3 as a single JSON array file
     try:
         date_path = datetime.now().strftime('%Y/%m/%d')
         s3_key = f"raw-metrics/{date_path}/metrics-{timestamp}.json"
         
+        json_lines_list = []
+        for metric in metrics:
+            json_lines_list.append(json.dumps(metric))
+        
+        newline = chr(10)
+        json_lines = newline.join(json_lines_list)
+        
         s3_client.put_object(
             Bucket=BUCKET_NAME,
             Key=s3_key,
-            Body=json.dumps(metrics, indent=2),
+            Body=json_lines,
             ContentType='application/json'
         )
         
@@ -91,7 +85,6 @@ def lambda_handler(event, context):
         print(f"Error writing to S3: {str(e)}")
         raise
     
-    # Write metrics to DynamoDB
     try:
         table = dynamodb.Table(TABLE_NAME)
         
@@ -114,7 +107,6 @@ def lambda_handler(event, context):
         print(f"Error writing to DynamoDB: {str(e)}")
         raise
     
-    # Publish CloudWatch metrics
     try:
         for metric in metrics:
             cloudwatch.put_metric_data(
