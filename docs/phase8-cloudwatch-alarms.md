@@ -180,4 +180,4 @@ Phase Status: ✅ Completed
 Total Time Invested: 2 hours
 Alarms Created: 6
 SNS Topics: 1
-Email Subscriptions: 1 (Confirmed)davoduo
+Email Subscriptions: 1 (Confirmed)
