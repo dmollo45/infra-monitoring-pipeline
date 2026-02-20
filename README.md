@@ -26,8 +26,6 @@ Fully serverless AWS monitoring pipeline that collects infrastructure metrics ev
 
 High-Level Architecture Flow
 
-High-Level Architecture Flow
-
 # Infrastructure Monitoring Pipeline Architecture
 
 ```
