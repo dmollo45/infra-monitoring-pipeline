@@ -456,7 +456,7 @@ echo "✅ Deployment verification complete!"
 EXECUTION_ARN=$(aws stepfunctions list-executions \
   --state-machine-arn $STATE_MACHINE_ARN \
   --max-results 1 \
-  --query 'executions.executionArn' \
+  --query 'executions[0].executionArn' \
   --output text)
 
 # Check execution status
