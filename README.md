@@ -28,6 +28,9 @@ High-Level Architecture Flow
 
 High-Level Architecture Flow
 
+# Infrastructure Monitoring Pipeline Architecture
+
+```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    EventBridge Scheduler                         │
 │                  (Every 3 Hours - 240/month)                     │
@@ -70,20 +73,15 @@ High-Level Architecture Flow
 │  │              └──→ SNS (Email Alerts)                    │    │
 │  └─────────────────────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────────────────────┘
+```
 
+---
 
-KEY METRICS
+## Detailed Component Flow
 
-    Execution Frequency: Every 3 hours (240/month)
-    Parallel Branches: 4 simultaneous metric collections
-    Storage Paths: 3 (cold/hot/monitoring)
-    Analytics Services: 3 (query/alarm/notify)
-    Performance Improvement: 3.3x with parallel processing
+### 1. SCHEDULING → ORCHESTRATION
 
 ```
-Detailed Component Flow
-1. SCHEDULING → ORCHESTRATION
-
 EventBridge Scheduler
 │
 └──→ Triggers every 3 hours (240 executions/month)
@@ -92,12 +90,13 @@ EventBridge Scheduler
 Step Functions State Machine
 │
 └──→ Orchestrates parallel Lambda executions
+```
 
-Purpose: Automated scheduling and workflow coordination
-Frequency: Every 3 hours (8 times per day)
-Cost: FREE (within Always Free tier)
-2. DATA COLLECTION (PARALLEL)
+---
 
+### 2. DATA COLLECTION (PARALLEL)
+
+```
 Step Functions
 │
 ├──→ Lambda: CPU Metrics ──────┐
@@ -109,18 +108,13 @@ Step Functions
 └──→ Lambda: Network Metrics ───┘
      │
      └──→ Results converge after completion
+```
 
-Metrics Collected:
+---
 
-    CPU Utilization: Processor usage percentage
-    Memory Usage: RAM consumption metrics
-    Disk I/O: Read/write operations
-    Network Traffic: Inbound/outbound data
+### 3. STORAGE LAYER (TRIPLE PATH)
 
-Execution: Parallel processing for efficiency
-Cost: FREE (1M requests/month on Always Free tier)
-3. STORAGE LAYER (TRIPLE PATH)
-
+```
 Collected Metrics
 │
 ├──→ Path 1: S3 Bucket
@@ -144,15 +138,13 @@ Collected Metrics
      ├──→ Lambda execution metrics
      ├──→ Custom infrastructure metrics
      └──→ Purpose: Operational monitoring
+```
 
-Storage Strategy:
+---
 
-    Cold Path (S3): Long-term storage, batch analytics
-    Hot Path (DynamoDB): Real-time access, low-latency queries
-    Monitoring Path (CloudWatch): Operational metrics, alerting
+### 4. ANALYTICS & ALERTING LAYER
 
-4. ANALYTICS & ALERTING LAYER
-
+```
 S3 Data
 │
 └──→ Athena
@@ -172,6 +164,21 @@ CloudWatch Metrics
           │
           └──→ SNS Topic
                └──→ Email notifications sent
+```
+    │
+│  └─────────────────────────────────────────────────────────┘    │
+└───────────────────────────────────────────────────────────────────┘
+
+
+KEY METRICS
+
+    Execution Frequency: Every 3 hours (240/month)
+    Parallel Branches: 4 simultaneous metric collections
+    Storage Paths: 3 (cold/hot/monitoring)
+    Analytics Services: 3 (query/alarm/notify)
+    Performance Improvement: 3.3x with parallel processing
+
+```
 
 **Data Flow:**
 1. EventBridge triggers Step Functions every 3 hours
