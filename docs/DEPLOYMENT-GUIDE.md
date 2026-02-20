@@ -1,41 +1,76 @@
-Deployment Guide - Infrastructure Monitoring Pipeline
+
+# Deployment Guide - Infrastructure Monitoring Pipeline
 
 This guide provides step-by-step instructions for deploying the Infrastructure Monitoring Pipeline to your AWS account.
-Prerequisites
-Required Tools
 
-    AWS Account with appropriate permissions
-    AWS CLI v2.x or higher
-    Python 3.14+
-    Git
-    Bash shell (Linux/macOS) or Git Bash (Windows)
+## Table of Contents
+- [Prerequisites](#prerequisites)
+- [Architecture Overview](#architecture-overview)
+- [Deployment Steps](#deployment-steps)
+- [Verification](#verification)
+- [Troubleshooting](#troubleshooting)
+- [Clean Up](#clean-up)
 
-AWS Permissions Required
+---
 
-    IAM: Create roles and policies
-    Lambda: Create and update functions
-    S3: Create buckets and configure notifications
-    DynamoDB: Create tables
-    Step Functions: Create state machines
-    EventBridge: Create rules
-    SNS: Create topics and subscriptions
-    CloudWatch: Create log groups and dashboards
+## Prerequisites
 
-Step 1: Clone the Repository
+### Required Tools
+- **AWS Account** with appropriate permissions
+- **AWS CLI** v2.x or higher
+- **Python** 3.14+
+- **Git** for version control
+- **Bash shell** (Linux/macOS) or Git Bash (Windows)
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+### AWS Permissions Required
+Your IAM user/role must have permissions to:
+- **IAM**: Create roles and policies
+- **Lambda**: Create and update functions
+- **S3**: Create buckets and configure notifications
+- **DynamoDB**: Create tables
+- **Step Functions**: Create state machines
+- **EventBridge**: Create rules
+- **SNS**: Create topics and subscriptions
+- **CloudWatch**: Create log groups and dashboards
+- **Athena**: Create databases and tables
+- **Glue**: Create crawlers and databases
 
+---
+
+## Architecture Overview
+
+The pipeline consists of:
+- **2 Lambda Functions**: `data-collector` (metrics generation) and `log-processor` (data processing)
+- **S3 Bucket**: Storage for raw and processed metrics
+- **DynamoDB Table**: Hot data storage for real-time queries
+- **Step Functions**: Workflow orchestration
+- **EventBridge**: Scheduled triggers (every 3 hours)
+- **SNS**: Alert notifications
+- **Athena**: Historical analytics queries
+- **CloudWatch**: Monitoring and dashboards
+
+---
+
+## Deployment Steps
+
+### Step 1: Clone the Repository
+
+```bash
 # Clone the repository
 git clone https://github.com/dmollo45/aws-data-pipeline.git
 cd aws-data-pipeline
 
 # Verify repository structure
 ls -la
+```
 
-Step 2: Configure AWS CLI
+**Expected Output**: Directory structure with `iam/`, `lambda/`, `step-functions/` folders
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 2: Configure AWS CLI
+
+```bash
 # Configure AWS credentials
 aws configure
 
@@ -44,11 +79,15 @@ aws sts get-caller-identity
 
 # Set your AWS region (recommended: eu-west-1)
 export AWS_REGION=eu-west-1
+```
 
-Step 3: Deploy IAM Roles
+**Expected Output**: Your AWS account ID, user ARN, and configured region
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 3: Deploy IAM Roles
+
+```bash
 # Navigate to IAM directory
 cd iam/
 
@@ -78,13 +117,18 @@ aws iam put-role-policy \
 sleep 10
 
 cd ..
+```
 
-Expected Output: Role ARNs for both Lambda and Step Functions roles
-Step 4: Create S3 Bucket
+**Expected Output**: Role ARNs for both Lambda and Step Functions roles
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+**⚠️ Important**: Wait at least 10 seconds for IAM role propagation before proceeding.
 
-# Create S3 bucket (replace with unique name)
+---
+
+### Step 4: Create S3 Bucket
+
+```bash
+# Create S3 bucket with unique name
 export BUCKET_NAME=infra-monitoring-pipeline-data-$(date +%s)
 
 aws s3api create-bucket \
@@ -108,12 +152,16 @@ aws s3api put-object --bucket $BUCKET_NAME --key raw-metrics/
 aws s3api put-object --bucket $BUCKET_NAME --key processed-logs/
 aws s3api put-object --bucket $BUCKET_NAME --key athena-results/
 
-echo "S3 Bucket created: $BUCKET_NAME"
+echo "✅ S3 Bucket created: $BUCKET_NAME"
+```
 
-Step 5: Create DynamoDB Table
+**Expected Output**: Bucket name with timestamp suffix
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 5: Create DynamoDB Table
+
+```bash
 # Create DynamoDB table
 aws dynamodb create-table \
   --table-name InfraMetrics \
@@ -129,13 +177,19 @@ aws dynamodb create-table \
 # Wait for table to be active
 aws dynamodb wait table-exists --table-name InfraMetrics
 
-echo "DynamoDB table created: InfraMetrics"
+echo "✅ DynamoDB table created: InfraMetrics"
+```
 
-Step 6: Deploy Lambda Functions
+**Expected Output**: Table status "ACTIVE"
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
-# Deploy data-collector Lambda
+### Step 6: Deploy Lambda Functions
+
+#### Deploy data-collector Lambda
+
+```bash
+# Navigate to data-collector directory
 cd lambda/data-collector/
 
 # Install dependencies
@@ -160,8 +214,12 @@ aws lambda create-function \
   --region $AWS_REGION
 
 cd ../..
+```
 
-# Deploy log-processor Lambda
+#### Deploy log-processor Lambda
+
+```bash
+# Navigate to log-processor directory
 cd lambda/log-processor/
 
 # Install dependencies
@@ -183,12 +241,16 @@ aws lambda create-function \
 
 cd ../..
 
-echo "Lambda functions deployed successfully"
+echo "✅ Lambda functions deployed successfully"
+```
 
-Step 7: Configure S3 Event Notification
+**Expected Output**: Function ARNs for both Lambda functions
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 7: Configure S3 Event Notification
+
+```bash
 # Add Lambda permission for S3 to invoke log-processor
 aws lambda add-permission \
   --function-name log-processor \
@@ -223,12 +285,16 @@ aws s3api put-bucket-notification-configuration \
   --bucket $BUCKET_NAME \
   --notification-configuration file://s3-event-config.json
 
-echo "S3 event notification configured"
+echo "✅ S3 event notification configured"
+```
 
-Step 8: Create SNS Topic
+**Expected Output**: S3 event notification successfully configured
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 8: Create SNS Topic
+
+```bash
 # Create SNS topic
 SNS_TOPIC_ARN=$(aws sns create-topic \
   --name InfraMonitoring-Alarms \
@@ -242,17 +308,23 @@ aws sns subscribe \
   --protocol email \
   --notification-endpoint your-email@example.com
 
-echo "SNS topic created: $SNS_TOPIC_ARN"
+echo "✅ SNS topic created: $SNS_TOPIC_ARN"
 echo "⚠️  Check your email and confirm the subscription!"
+```
 
-Step 9: Deploy Step Functions State Machine
+**Expected Output**: SNS topic ARN
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+**⚠️ Action Required**: Check your email inbox and confirm the SNS subscription.
 
+---
+
+### Step 9: Deploy Step Functions State Machine
+
+```bash
 # Get Step Functions role ARN
 STEPFUNCTIONS_ROLE_ARN=$(aws iam get-role --role-name step-functions-execution-role --query 'Role.Arn' --output text)
 
-# Update state machine definition with actual ARNs
+# Navigate to step-functions directory
 cd step-functions/
 
 # Replace placeholders in state-machine.json
@@ -268,18 +340,22 @@ aws stepfunctions create-state-machine \
 
 cd ..
 
-echo "Step Functions state machine deployed"
+echo "✅ Step Functions state machine deployed"
+```
 
-Step 10: Configure EventBridge Schedule
+**Expected Output**: State machine ARN
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 10: Configure EventBridge Schedule
+
+```bash
 # Get Step Functions state machine ARN
 STATE_MACHINE_ARN=$(aws stepfunctions list-state-machines \
   --query "stateMachines[?name=='InfraMonitoring-Pipeline-Orchestration'].stateMachineArn" \
   --output text)
 
-# Create EventBridge rule
+# Create EventBridge rule (every 3 hours)
 aws events put-rule \
   --name InfraMonitoring-Trigger \
   --schedule-expression "rate(3 hours)" \
@@ -291,12 +367,16 @@ aws events put-targets \
   --rule InfraMonitoring-Trigger \
   --targets "Id"="1","Arn"="$STATE_MACHINE_ARN","RoleArn"="$STEPFUNCTIONS_ROLE_ARN"
 
-echo "EventBridge schedule configured (every 3 hours)"
+echo "✅ EventBridge schedule configured (every 3 hours)"
+```
 
-Step 11: Create Athena Database and Table
+**Expected Output**: EventBridge rule successfully created
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 11: Create Athena Database and Table
+
+```bash
 # Create Athena database
 aws athena start-query-execution \
   --query-string "CREATE DATABASE IF NOT EXISTS infra_monitoring" \
@@ -323,12 +403,18 @@ aws athena start-query-execution \
   --result-configuration "OutputLocation=s3://$BUCKET_NAME/athena-results/" \
   --region $AWS_REGION
 
-echo "Athena database and table created"
+echo "✅ Athena database and table created"
+```
 
-Step 12: Verify Deployment
+**Expected Output**: Query execution IDs
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+## Verification
+
+### Step 12: Test Deployment
+
+```bash
 # Test data-collector Lambda
 aws lambda invoke \
   --function-name data-collector \
@@ -353,16 +439,24 @@ aws stepfunctions start-execution \
   --region $AWS_REGION
 
 echo "✅ Deployment verification complete!"
+```
 
-Step 13: Monitor First Execution
+**Expected Output**: 
+- Lambda response with status code 200
+- New JSON file in S3 raw-metrics folder
+- New record in DynamoDB table
+- Step Functions execution ARN
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Step 13: Monitor First Execution
+
+```bash
 # Get latest execution ARN
 EXECUTION_ARN=$(aws stepfunctions list-executions \
   --state-machine-arn $STATE_MACHINE_ARN \
   --max-results 1 \
-  --query 'executions[0].executionArn' \
+  --query 'executions.executionArn' \
   --output text)
 
 # Check execution status
@@ -372,31 +466,100 @@ aws stepfunctions describe-execution \
 
 # View CloudWatch Logs
 aws logs tail /aws/lambda/data-collector --follow
+```
 
-Deployment Summary
+**Expected Output**: Execution status "SUCCEEDED"
+
+---
+
+## Deployment Summary
 
 After completing all steps, you should have:
 
-✅ IAM roles for Lambda and Step Functions ✅ S3 bucket with folder structure ✅ DynamoDB table for metrics ✅ 2 Lambda functions (data-collector, log-processor) ✅ S3 event notification configured ✅ SNS topic with email subscription ✅ Step Functions state machine ✅ EventBridge rule (every 3 hours) ✅ Athena database and table
-Troubleshooting
-Issue: Lambda function fails with permission error
+✅ **IAM roles** for Lambda and Step Functions  
+✅ **S3 bucket** with folder structure (raw-metrics/, processed-logs/, athena-results/)  
+✅ **DynamoDB table** for metrics (InfraMetrics)  
+✅ **2 Lambda functions** (data-collector, log-processor)  
+✅ **S3 event notification** configured  
+✅ **SNS topic** with email subscription  
+✅ **Step Functions state machine** (InfraMonitoring-Pipeline-Orchestration)  
+✅ **EventBridge rule** (every 3 hours)  
+✅ **Athena database and table** (infra_monitoring.metrics)
 
-Solution: Verify IAM role has correct permissions and wait 10 seconds for propagation
-Issue: S3 event notification not triggering log-processor
+---
 
-Solution: Check Lambda permission for S3 invocation and verify event configuration
-Issue: Step Functions execution fails
+## Troubleshooting
 
-Solution: Check CloudWatch Logs for Lambda errors and verify all ARNs in state machine definition
-Issue: SNS email not received
+### Issue: Lambda function fails with permission error
 
-Solution: Check spam folder and confirm subscription in email
-Clean Up (Optional)
+**Solution**: 
+- Verify IAM role has correct permissions
+- Wait 10 seconds for IAM role propagation
+- Check CloudWatch Logs for detailed error messages
 
-To remove all resources:
+```bash
+aws logs tail /aws/lambda/data-collector --follow
+```
 
-DEPLOYMENT-GUIDE.md - Step-by-Step Deployment
+---
 
+### Issue: S3 event notification not triggering log-processor
+
+**Solution**:
+- Check Lambda permission for S3 invocation
+- Verify event configuration matches file prefix/suffix
+- Test manually by uploading a file to S3
+
+```bash
+aws lambda get-policy --function-name log-processor
+```
+
+---
+
+### Issue: Step Functions execution fails
+
+**Solution**:
+- Check CloudWatch Logs for Lambda errors
+- Verify all ARNs in state machine definition
+- Review execution history in Step Functions console
+
+```bash
+aws stepfunctions describe-execution --execution-arn $EXECUTION_ARN
+```
+
+---
+
+### Issue: SNS email not received
+
+**Solution**:
+- Check spam/junk folder
+- Confirm subscription in email
+- Verify SNS topic subscription status
+
+```bash
+aws sns list-subscriptions-by-topic --topic-arn $SNS_TOPIC_ARN
+```
+
+---
+
+### Issue: Athena query fails
+
+**Solution**:
+- Verify S3 bucket permissions
+- Check Athena query results location
+- Ensure JSON files are properly formatted
+
+```bash
+aws athena get-query-execution --query-execution-id <QUERY_ID>
+```
+
+---
+
+## Clean Up (Optional)
+
+To remove all resources and avoid charges:
+
+```bash
 # Delete EventBridge rule
 aws events remove-targets --rule InfraMonitoring-Trigger --ids "1"
 aws events delete-rule --name InfraMonitoring-Trigger
@@ -418,8 +581,43 @@ aws s3api delete-bucket --bucket $BUCKET_NAME
 # Delete SNS topic
 aws sns delete-topic --topic-arn $SNS_TOPIC_ARN
 
+# Delete Athena database
+aws athena start-query-execution \
+  --query-string "DROP DATABASE IF EXISTS infra_monitoring CASCADE" \
+  --result-configuration "OutputLocation=s3://$BUCKET_NAME/athena-results/"
+
 # Delete IAM roles
 aws iam delete-role-policy --role-name lambda-execution-role --policy-name LambdaExecutionPolicy
 aws iam delete-role --role-name lambda-execution-role
 aws iam delete-role-policy --role-name step-functions-execution-role --policy-name StepFunctionsExecutionPolicy
 aws iam delete-role --role-name step-functions-execution-role
+
+echo "✅ All resources deleted successfully"
+```
+
+---
+
+## Additional Resources
+
+- **AWS Lambda Documentation**: https://docs.aws.amazon.com/lambda/
+- **AWS Step Functions Documentation**: https://docs.aws.amazon.com/step-functions/
+- **AWS Athena Documentation**: https://docs.aws.amazon.com/athena/
+- **Project Repository**: https://github.com/dmollo45/aws-data-pipeline
+
+---
+
+## Support
+
+For issues or questions:
+1. Check CloudWatch Logs for detailed error messages
+2. Review AWS service quotas and limits
+3. Verify IAM permissions are correctly configured
+4. Consult AWS documentation for specific services
+
+**Deployment Time**: Approximately 30-45 minutes
+
+**Cost Estimate**: ~$0.50-$1.00/month (mostly S3 storage)
+
+---
+
+*Last Updated: February 20, 2026*
