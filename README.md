@@ -26,6 +26,8 @@ Fully serverless AWS monitoring pipeline that collects infrastructure metrics ev
 
 High-Level Architecture Flow
 
+High-Level Architecture Flow
+
 ┌─────────────────────────────────────────────────────────────────┐
 │                    EventBridge Scheduler                         │
 │                  (Every 3 Hours - 240/month)                     │
@@ -69,6 +71,7 @@ High-Level Architecture Flow
 │  └─────────────────────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────────────────────┘
 
+
 KEY METRICS
 
     Execution Frequency: Every 3 hours (240/month)
@@ -78,6 +81,97 @@ KEY METRICS
     Performance Improvement: 3.3x with parallel processing
 
 ```
+Detailed Component Flow
+1. SCHEDULING → ORCHESTRATION
+
+EventBridge Scheduler
+│
+└──→ Triggers every 3 hours (240 executions/month)
+     │
+     ▼
+Step Functions State Machine
+│
+└──→ Orchestrates parallel Lambda executions
+
+Purpose: Automated scheduling and workflow coordination
+Frequency: Every 3 hours (8 times per day)
+Cost: FREE (within Always Free tier)
+2. DATA COLLECTION (PARALLEL)
+
+Step Functions
+│
+├──→ Lambda: CPU Metrics ──────┐
+│                               │
+├──→ Lambda: Memory Metrics ────┤──→ All execute simultaneously
+│                               │
+├──→ Lambda: Disk Metrics ──────┤
+│                               │
+└──→ Lambda: Network Metrics ───┘
+     │
+     └──→ Results converge after completion
+
+Metrics Collected:
+
+    CPU Utilization: Processor usage percentage
+    Memory Usage: RAM consumption metrics
+    Disk I/O: Read/write operations
+    Network Traffic: Inbound/outbound data
+
+Execution: Parallel processing for efficiency
+Cost: FREE (1M requests/month on Always Free tier)
+3. STORAGE LAYER (TRIPLE PATH)
+
+Collected Metrics
+│
+├──→ Path 1: S3 Bucket
+│    │
+│    ├──→ Raw metric files stored
+│    ├──→ Cost: ~$0.50/month (20GB)
+│    └──→ Purpose: Historical data & batch analytics
+│         │
+│         └──→ Athena
+│              └──→ SQL queries on historical data
+│                   Cost: ~$0.01/month
+│
+├──→ Path 2: DynamoDB Table
+│    │
+│    ├──→ Processed metrics stored
+│    ├──→ Batch writes (25 items/request)
+│    └──→ Purpose: Real-time queries & fast access
+│
+└──→ Path 3: CloudWatch Metrics
+     │
+     ├──→ Lambda execution metrics
+     ├──→ Custom infrastructure metrics
+     └──→ Purpose: Operational monitoring
+
+Storage Strategy:
+
+    Cold Path (S3): Long-term storage, batch analytics
+    Hot Path (DynamoDB): Real-time access, low-latency queries
+    Monitoring Path (CloudWatch): Operational metrics, alerting
+
+4. ANALYTICS & ALERTING LAYER
+
+S3 Data
+│
+└──→ Athena
+     └──→ SQL queries on historical data
+          └──→ Cost: ~$0.01/month
+
+CloudWatch Metrics
+│
+└──→ CloudWatch Alarms (6 alarms configured)
+     │
+     ├──→ High CPU (>80%)
+     ├──→ Data Collector Errors (>0)
+     ├──→ Log Processor Errors (>0)
+     ├──→ DynamoDB Throttling (>0)
+     ├──→ High Memory (>90%)
+     └──→ Lambda Duration (>3000ms)
+          │
+          └──→ SNS Topic
+               └──→ Email notifications sent
 
 **Data Flow:**
 1. EventBridge triggers Step Functions every 3 hours
