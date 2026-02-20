@@ -24,45 +24,29 @@ Fully serverless AWS monitoring pipeline that collects infrastructure metrics ev
 
 ## Architecture
 
-┌AWS Infrastructure Monitoring Pipeline - Data Flow Architecture
-1. SCHEDULING LAYER
+┌EventBridge Scheduler (Every 3 Hours - 240/month) │ │ triggers ▼ Step Functions State Machine (Workflow Orchestration) │ │ initiates ▼ Parallel Data Collection ├──→ CPU Metrics Collection ├──→ Memory Metrics Collection ├──→ Disk Metrics Collection └──→ Network Metrics Collection │ │ all branches converge ▼ Storage Layer (3 Paths) ├──→ S3 (Cold Path - Long-term Storage) │ │ │ │ feeds into │ ▼ │ Athena (SQL Queries) │ ├──→ DynamoDB (Hot Path - Real-time Access) │ └──→ CloudWatch (Monitoring Metrics) │ │ triggers ▼ CloudWatch Alarms │ │ sends notifications via ▼ SNS (Email Alerts)
+DETAILED COMPONENT FLOW
+1. SCHEDULING → ORCHESTRATION
 
-EventBridge Scheduler ├─ Trigger Frequency: Every 3 hours ├─ Monthly Executions: 240 invocations/month └─ Target: Step Functions State Machine
-2. ORCHESTRATION LAYER
+EventBridge Scheduler │ └──→ Triggers every 3 hours (240 executions/month) │ ▼ Step Functions State Machine │ └──→ Orchestrates parallel Lambda executions
+2. DATA COLLECTION (PARALLEL)
 
-Step Functions State Machine ├─ Purpose: Workflow orchestration and coordination ├─ Triggered by: EventBridge Scheduler └─ Orchestrates: Parallel data collection tasks
-3. DATA COLLECTION LAYER (Parallel Execution)
+Step Functions │ ├──→ Lambda: CPU Metrics ──┐ │ │ ├──→ Lambda: Memory Metrics ├──→ All execute simultaneously │ │ ├──→ Lambda: Disk Metrics ──┤ │ │ └──→ Lambda: Network Metrics┘ │ └──→ Results converge after completion
+3. STORAGE LAYER (TRIPLE PATH)
 
-Parallel Data Collection ├─ Branch 1: CPU Metrics Collection ├─ Branch 2: Memory Metrics Collection ├─ Branch 3: Disk Metrics Collection └─ Branch 4: Network Metrics Collection
+Collected Metrics │ ├──→ Path 1: S3 Bucket │ │ │ ├──→ Raw metric files stored │ ├──→ Cost: ~$0.50/month (20GB) │ └──→ Purpose: Historical data & batch analytics │ ├──→ Path 2: DynamoDB Table │ │ │ ├──→ Processed metrics stored │ ├──→ Batch writes (25 items/request) │ └──→ Purpose: Real-time queries & fast access │ └──→ Path 3: CloudWatch Metrics │ ├──→ Lambda execution metrics ├──→ Custom infrastructure metrics └──→ Purpose: Operational monitoring
+4. ANALYTICS & ALERTING LAYER
 
-All branches execute simultaneously and converge after completion
-4. STORAGE LAYER (Multi-Path Architecture)
+S3 Data │ └──→ Athena │ └──→ SQL queries on historical data │ └──→ Cost: ~$0.01/month
 
-Storage destinations for collected metrics:
-Cold Path (Batch Layer)
+CloudWatch Metrics │ └──→ CloudWatch Alarms (6 alarms configured) │ ├──→ High CPU (>80%) ├──→ Data Collector Errors (>0) ├──→ Log Processor Errors (>0) ├──→ DynamoDB Throttling (>0) ├──→ High Memory (>90%) └──→ Lambda Duration (>3000ms) │ └──→ SNS Topic │ └──→ Email notifications sent
+SIMPLIFIED END-TO-END FLOW
 
-Amazon S3 ├─ Purpose: Long-term storage and historical data ├─ Data Format: Raw metric files └─ Cost: ~$0.50/month for 20GB
-Hot Path (Speed Layer)
+EventBridge (3hr schedule) ↓ Step Functions (orchestration) ↓ 4x Parallel Lambda (CPU, Memory, Disk, Network) ↓ 3x Storage Paths (S3 + DynamoDB + CloudWatch) ↓ Analytics Layer (Athena + Alarms + SNS) ↓ Notifications & Insights
+KEY METRICS
 
-Amazon DynamoDB ├─ Purpose: Real-time queries and fast access ├─ Write Pattern: Batch writes (up to 25 items/request) └─ Data: Processed infrastructure metrics
-Monitoring Path
+→ Execution Frequency: Every 3 hours (240/month) → Parallel Branches: 4 simultaneous metric collections → Storage Paths: 3 (cold/hot/monitoring) → CloudWatch Alarms: 6 configured → Analytics Services: 3 (query/alarm/notify) → Performance Improvement: 3.3x with parallel processing
 
-Amazon CloudWatch ├─ Purpose: Operational metrics and monitoring ├─ Contains: Lambda execution metrics, custom metrics └─ Cost: FREE (Always Free tier)
-5. ANALYTICS & ALERTING LAYER
-
-Three parallel services for data consumption:
-Query Engine
-
-Amazon Athena ├─ Purpose: SQL queries on historical data ├─ Data Source: S3 (cold path) └─ Cost: ~$0.01/month
-Monitoring & Alarms
-
-Amazon CloudWatch Alarms ├─ Purpose: Threshold-based alerting ├─ Monitors: Infrastructure metrics and Lambda health └─ Triggers: SNS notifications
-Notification Service
-
-Amazon SNS ├─ Purpose: Alert delivery ├─ Channels: Email notifications └─ Cost: FREE (1K emails/month on Always Free tier)
-DATA FLOW SUMMARY
-
-EventBridge (3hr schedule) → Step Functions (orchestration) → Parallel Lambda executions (4 metric types) → Storage layer (S3 + DynamoDB + CloudWatch) → Analytics layer (Athena + CloudWatch Alarms + SNS)
 KEY METRICS
 
     Execution Frequency: Every 3 hours (240/month)
