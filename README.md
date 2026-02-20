@@ -24,28 +24,50 @@ Fully serverless AWS monitoring pipeline that collects infrastructure metrics ev
 
 ## Architecture
 
-┌EventBridge Scheduler (Every 3 Hours - 240/month) │ │ triggers ▼ Step Functions State Machine (Workflow Orchestration) │ │ initiates ▼ Parallel Data Collection ├──→ CPU Metrics Collection ├──→ Memory Metrics Collection ├──→ Disk Metrics Collection └──→ Network Metrics Collection │ │ all branches converge ▼ Storage Layer (3 Paths) ├──→ S3 (Cold Path - Long-term Storage) │ │ │ │ feeds into │ ▼ │ Athena (SQL Queries) │ ├──→ DynamoDB (Hot Path - Real-time Access) │ └──→ CloudWatch (Monitoring Metrics) │ │ triggers ▼ CloudWatch Alarms │ │ sends notifications via ▼ SNS (Email Alerts)
-DETAILED COMPONENT FLOW
-1. SCHEDULING → ORCHESTRATION
+High-Level Architecture Flow
 
-EventBridge Scheduler │ └──→ Triggers every 3 hours (240 executions/month) │ ▼ Step Functions State Machine │ └──→ Orchestrates parallel Lambda executions
-2. DATA COLLECTION (PARALLEL)
-
-Step Functions │ ├──→ Lambda: CPU Metrics ──┐ │ │ ├──→ Lambda: Memory Metrics ├──→ All execute simultaneously │ │ ├──→ Lambda: Disk Metrics ──┤ │ │ └──→ Lambda: Network Metrics┘ │ └──→ Results converge after completion
-3. STORAGE LAYER (TRIPLE PATH)
-
-Collected Metrics │ ├──→ Path 1: S3 Bucket │ │ │ ├──→ Raw metric files stored │ ├──→ Cost: ~$0.50/month (20GB) │ └──→ Purpose: Historical data & batch analytics │ ├──→ Path 2: DynamoDB Table │ │ │ ├──→ Processed metrics stored │ ├──→ Batch writes (25 items/request) │ └──→ Purpose: Real-time queries & fast access │ └──→ Path 3: CloudWatch Metrics │ ├──→ Lambda execution metrics ├──→ Custom infrastructure metrics └──→ Purpose: Operational monitoring
-4. ANALYTICS & ALERTING LAYER
-
-S3 Data │ └──→ Athena │ └──→ SQL queries on historical data │ └──→ Cost: ~$0.01/month
-
-CloudWatch Metrics │ └──→ CloudWatch Alarms (6 alarms configured) │ ├──→ High CPU (>80%) ├──→ Data Collector Errors (>0) ├──→ Log Processor Errors (>0) ├──→ DynamoDB Throttling (>0) ├──→ High Memory (>90%) └──→ Lambda Duration (>3000ms) │ └──→ SNS Topic │ └──→ Email notifications sent
-SIMPLIFIED END-TO-END FLOW
-
-EventBridge (3hr schedule) ↓ Step Functions (orchestration) ↓ 4x Parallel Lambda (CPU, Memory, Disk, Network) ↓ 3x Storage Paths (S3 + DynamoDB + CloudWatch) ↓ Analytics Layer (Athena + Alarms + SNS) ↓ Notifications & Insights
-KEY METRICS
-
-→ Execution Frequency: Every 3 hours (240/month) → Parallel Branches: 4 simultaneous metric collections → Storage Paths: 3 (cold/hot/monitoring) → CloudWatch Alarms: 6 configured → Analytics Services: 3 (query/alarm/notify) → Performance Improvement: 3.3x with parallel processing
+┌─────────────────────────────────────────────────────────────────┐
+│                    EventBridge Scheduler                         │
+│                  (Every 3 Hours - 240/month)                     │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ triggers
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Step Functions State Machine                        │
+│              (Workflow Orchestration)                            │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ initiates
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  Parallel Data Collection                        │
+│  ┌──────────────┬──────────────┬──────────────┬──────────────┐  │
+│  │ CPU Metrics  │ Memory       │ Disk Metrics │ Network      │  │
+│  │ Collection   │ Metrics      │ Collection   │ Metrics      │  │
+│  │              │ Collection   │              │ Collection   │  │
+│  └──────────────┴──────────────┴──────────────┴──────────────┘  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ all branches converge
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Storage Layer (3 Paths)                       │
+│                                                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Path 1: S3 (Cold Path - Long-term Storage)             │    │
+│  │         └──→ Athena (SQL Queries)                       │    │
+│  │              Cost: ~$0.50/month (20GB)                  │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Path 2: DynamoDB (Hot Path - Real-time Access)         │    │
+│  │         Batch writes (25 items/request)                 │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Path 3: CloudWatch (Monitoring Metrics)                │    │
+│  │         └──→ CloudWatch Alarms (6 configured)          │    │
+│  │              └──→ SNS (Email Alerts)                    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└───────────────────────────────────────────────────────────────────┘
 
 KEY METRICS
 
