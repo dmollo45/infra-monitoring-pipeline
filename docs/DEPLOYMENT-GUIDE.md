@@ -1,5 +1,5 @@
 
-# Deployment Guide - Infrastructure Monitoring data Pipeline
+# Deployment Guide - Infrastructure Monitoring Data Pipeline
 
 This guide provides step-by-step instructions for deploying the Infrastructure Monitoring Pipeline to your AWS account.
 
