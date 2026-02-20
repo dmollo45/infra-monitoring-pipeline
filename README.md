@@ -1,7 +1,7 @@
 
 # AWS Infrastructure Monitoring Pipeline
 
-> Production-ready serverless infrastructure monitoring solution with parallel processing, automated alerting, and SQL analytics
+> Production-ready end to end serverless infrastructure monitoring solution with parallel processing, automated alerting, and SQL analytics
 
 [![Status](https://img.shields.io/badge/Status-Complete-success)]() [![AWS](https://img.shields.io/badge/AWS-Serverless-orange)]() [![Python](https://img.shields.io/badge/Python-3.14-blue)]() [![Cost](https://img.shields.io/badge/Cost-$0.02%2Fmonth-green)]()
 
