@@ -495,9 +495,8 @@ Performance Tests:
 
 **David Mollo**
 - GitHub: [@dmollo45](https://github.com/dmollo45)
-- Email: dmollo45@gmail.com
 
-
+---
 
 ## License
 
