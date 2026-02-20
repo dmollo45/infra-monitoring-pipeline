@@ -377,7 +377,7 @@ Performance Tests:
 - LinkedIn: [David Mollo.](https://www.linkedin.com/in/david-m-499254145/)
 - Email: dmollo45@gmail.com
 
-Data Engineer specializing in AWS cloud architecture, serverless computing, and scalable data pipelines.
+SRE Data Engineer specializing in AWS cloud architecture, serverless computing, and scalable data pipelines.
 
 ---
 
