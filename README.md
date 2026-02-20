@@ -355,7 +355,7 @@ Performance Tests:
 ## Documentation
 
 - [Architecture Overview](docs/architecture.md)
-- [Deployment Guide](docs/deployment-guide.md)
+- [Deployment Guide](docs/DEPLOYMENT-GUIDE.md)
 - [Cost Analysis](docs/cost-analysis.md)
 - [Testing Strategy](docs/phase9-testing.md)
 - [Phase-by-Phase Implementation](docs/)
