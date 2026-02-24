@@ -2,9 +2,9 @@ name: CI - Run Unit Tests
 
 on:
   push:
-    branches: [ main, "feature/**" ]
+    branches: [ master, "feature/**" ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   test:
