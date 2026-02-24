@@ -1,3 +1,4 @@
+![CI](https://github.com/dmollo45/infra-monitoring-pipeline/actions/workflows/ci.yml/badge.svg)
 
 # AWS Infrastructure Monitoring Pipeline
 
