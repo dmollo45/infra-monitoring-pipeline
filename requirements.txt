@@ -1,0 +1,4 @@
+﻿boto3
+moto[s3,dynamodb,lambda]
+pytest
+pytest-cov
