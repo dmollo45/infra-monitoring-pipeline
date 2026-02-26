@@ -495,19 +495,13 @@ Performance Tests:
 ## Author
 
 **David Mollo**
-- GitHub: [@dmollo45](https://github.com/dmollo45)
-
----
-
-**David Mollo**
 - GitHub: [@dmollo45](https://github.com/dmollo45/infra-monitoring-pipeline)
 - LinkedIn: [David Mollo.](https://www.linkedin.com/in/david-m-499254145/)
 - Email: dmollo45@gmail.com
 
 SRE Data Engineer specializing in AWS cloud architecture, serverless computing, and scalable data pipelines.
-
 ---
 
-**Project Stats:** 500+ LOC | 8 AWS Services | 15 Step Functions States | 50+ Test Executions | 100% Success Rate
+**Project Stats:** 500+ Lines of code (LOC) | 8 AWS Services | 15 Step Functions States | 50+ Test Executions | 100% Success Rate
 
 ⭐ Star this repo if you find it helpful!
