@@ -499,9 +499,12 @@ Performance Tests:
 
 ---
 
-## License
+**David Mollo**
+- GitHub: [@dmollo45](https://github.com/dmollo45/infra-monitoring-pipeline)
+- LinkedIn: [David Mollo.](https://www.linkedin.com/in/david-m-499254145/)
+- Email: dmollo45@gmail.com
 
-MIT License - See [LICENSE](LICENSE) for details
+SRE Data Engineer specializing in AWS cloud architecture, serverless computing, and scalable data pipelines.
 
 ---
 
